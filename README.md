@@ -19,7 +19,7 @@
 
 NIRIKSHA.ai is an AI-powered honeypot backend. When a scammer sends a message, the system pretends to be a confused but cooperative person, holds the conversation open across multiple turns, and silently extracts identifying information (phone numbers, UPI IDs, bank accounts, phishing links, email addresses, reference IDs). After roughly 10 turns, it produces a structured intelligence report including a scam-type classification.
 
-The project is a Python/FastAPI REST API with SQLite persistence via SQLModel. It has no frontend.
+The project is a Python/FastAPI REST API with SQLite persistence via SQLModel and a built-in same-origin dashboard.
 
 ---
 
@@ -79,13 +79,12 @@ POST /api/detect (with sessionId, message, conversationHistory)
 
 ## Limitations
 
-- No frontend or dashboard. Interaction is API-only.
 - `scamDetected` is hardcoded to `True` in every final report.
 - Engagement duration is artificially inflated for sessions with 16+ messages.
 - Session dicts grow unbounded in-memory (no TTL or cleanup).
 - Single shared API key (no per-user authentication).
 - No rate limiting. Endpoint can be freely abused.
-- No CORS configuration (browser-based clients will be blocked).
+- No CORS configuration (external browser-based clients will be blocked).
 - Phone number extraction is India-specific (+91, 10-digit starting with 6–9).
 - Extraction is regex-only; no ML-based entity recognition.
 - No structured logging. Logs are `print()` statements to stdout only.
@@ -131,6 +130,7 @@ NIRIKSHA.ai/
 │   │   └── retrieval.py         # GET /api/sessions, sessions/{id}, reports/{id}, indicators
 │   └── tests/
 │       └── test_chat.py         # Integration test: 5 weighted scam scenarios
+├── static/                      # Dashboard assets (index.html, style.css, app.js)
 ├── data/
 │   └── agentic_ai_honeypot.db   # SQLite database (auto-created on startup, gitignored)
 ├── docs/
@@ -241,6 +241,7 @@ These endpoints retrieve persisted data from the SQLite database. All are authen
 | `GET /api/sessions/{session_id}` | Session detail + full message history + grouped indicators |
 | `GET /api/reports/{session_id}` | Parsed final report for a completed session |
 | `GET /api/indicators` | All unique indicators sorted by hit count |
+| `GET /health` | Health check endpoint returning `{"status": "ok"}` |
 
 ### Error Codes
 
@@ -271,7 +272,7 @@ Full API and schema details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 **Classification: Research Prototype / Hackathon Submission**
 
-The API pipeline is complete and tested. The codebase has been refactored from a single 626-line file into a modular structure. SQLite persistence and authenticated retrieval endpoints are implemented. There is no frontend and no deployment infrastructure. The system is suitable for local demonstration and academic evaluation.
+The API pipeline is complete and tested. The codebase has been refactored from a single 626-line file into a modular structure. SQLite persistence, authenticated retrieval endpoints, and a same-origin dashboard are implemented. The system is suitable for local demonstration and academic evaluation.
 
 See [docs/CURRENT_STATUS.md](docs/CURRENT_STATUS.md) for a detailed breakdown.
 
@@ -279,14 +280,12 @@ See [docs/CURRENT_STATUS.md](docs/CURRENT_STATUS.md) for a detailed breakdown.
 
 ## Planned Next Steps
 
-1. Add CORS configuration (required before any browser-based frontend)
-2. Add a web-based dashboard (conversation view, extracted data panel, final report card)
-3. Add session TTL and cleanup to prevent memory growth
-4. Add rate limiting middleware
-5. Add a health check endpoint (`GET /health`)
-6. Write proper unit tests with pytest
-7. Add Docker support
-8. Add structured logging
+1. Add CORS configuration (useful for separate frontend deployments)
+2. Add session TTL and cleanup to prevent memory growth
+3. Add rate limiting middleware
+4. Write proper unit tests with pytest
+5. Add Docker support
+6. Add structured logging
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for phased planning.
 

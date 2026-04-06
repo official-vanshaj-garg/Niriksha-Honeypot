@@ -18,7 +18,7 @@ This is a Python/FastAPI backend that acts as an AI-powered honeypot. When a sca
 
 ## 3. Current Project Goal
 
-The core API pipeline is complete and tested. The next goal is to build a web-based dashboard (chat view, intelligence panel, report card) so the project can be demonstrated visually for academic and hackathon presentation.
+The core API pipeline, database persistence, and retrieval endpoints are complete and tested. A built-in, same-origin dashboard is now live. The goal is to add small, low-risk operational improvements moving forward (e.g., CORS, rate limiting, session TTL).
 
 ---
 
@@ -30,7 +30,8 @@ The core API pipeline is complete and tested. The next goal is to build a web-ba
 | Database persistence | **Working** — SQLite via SQLModel |
 | Retrieval endpoints | **Working** — 4 authenticated GET routes |
 | Modular codebase | **Done** — split into config, schemas, session_state, utils, services, routes, models, db |
-| Frontend / dashboard | **Not started** |
+| Frontend / dashboard | **Working** — same-origin HTML/JS served directly via FastAPI |
+| Health check | **Working** — `GET /health` endpoint added |
 | Deployment | **Local only** — no hosting configured |
 | CI/CD | **Not implemented** |
 | Unit tests (pytest) | **Not implemented** — integration test harness only |
@@ -58,6 +59,8 @@ The core API pipeline is complete and tested. The next goal is to build a web-ba
   - `GET /api/sessions/{session_id}` — session detail + messages + indicators
   - `GET /api/reports/{session_id}` — parsed final report
   - `GET /api/indicators` — all indicators sorted by hit count
+- Health check endpoint `GET /health`
+- Same-origin dashboard served at `GET /dashboard`
 - Integration test harness with 5 weighted scam scenarios
 
 ---
@@ -104,6 +107,8 @@ The core API pipeline is complete and tested. The next goal is to build a web-ba
 - `GET /api/sessions/{session_id}` — session detail with messages and indicators
 - `GET /api/reports/{session_id}` — final report for a session
 - `GET /api/indicators` — all unique indicators
+- `GET /dashboard` — same-origin dashboard HTML
+- `GET /health` — health check returning `{"status": "ok"}`
 
 **Auth:** All endpoints require `x-api-key` header matching `API_SECRET_KEY` env var
 
@@ -132,7 +137,7 @@ The core API pipeline is complete and tested. The next goal is to build a web-ba
 
 **Error codes:** 403 (bad API key), 404 (session/report not found, GET only), 422 (malformed body, POST only)
 
-**No CORS middleware** configured yet. Browser-based clients cannot reach the API directly.
+**No CORS middleware** configured yet. External browser-based clients cannot reach the API (except the internal dashboard which sidesteps CORS).
 
 ---
 
@@ -159,7 +164,7 @@ The core API pipeline is complete and tested. The next goal is to build a web-ba
 Agentic AI Honeypot/
 ├── src/
 │   ├── __init__.py
-│   ├── main.py                  # App entry point: FastAPI app, router, create_db()
+│   ├── main.py                  # App entry point: FastAPI app, router, health check, create_db()
 │   ├── config.py                # Env vars, Groq client, API key, delays, log_chat()
 │   ├── schemas.py               # Pydantic models: MessageItem, IncomingRequest, AgentResponse
 │   ├── session_state.py         # 6 in-memory dicts (module-level singletons)
@@ -180,6 +185,7 @@ Agentic AI Honeypot/
 │   │   └── text.py              # 12 compiled regexes, word lists, norm(), phone normalisation
 │   └── tests/
 │       └── test_chat.py         # Integration test: 5 scam scenarios with weighted scoring
+├── static/                      # Dashboard assets (index.html, style.css, app.js)
 ├── data/
 │   └── agentic_ai_honeypot.db   # SQLite database (auto-created on startup, gitignored)
 ├── docs/                        # All documentation files
@@ -274,31 +280,26 @@ This runs 5 scam scenarios (Bank Fraud, Phishing Link, Job Scam, Electricity Bil
 2. Engagement duration is artificially padded to 181+ seconds for sessions with 16+ messages.
 3. Session dicts (`SESSION_START_TIMES`, etc.) grow without bound in memory. No TTL or cleanup.
 4. No retry logic for Groq API calls. A transient failure returns a static fallback reply with no logging.
-5. No CORS middleware. Browser-based clients cannot reach the API.
-6. No health check endpoint (`GET /health`).
-7. Phone extraction is India-specific (10-digit numbers starting with 6-9, +91 prefix).
-8. Extraction is regex-only. No ML-based entity recognition.
-9. `test_chat.py` requires manual API key update and a running server.
-10. No Alembic. Changing DB table definitions requires manually deleting the `.db` file.
+5. No CORS middleware. External browser-based clients cannot reach the API.
+6. Phone extraction is India-specific (10-digit numbers starting with 6-9, +91 prefix).
+7. Extraction is regex-only. No ML-based entity recognition.
+8. `test_chat.py` requires manual API key update and a running server.
+9. No Alembic. Changing DB table definitions requires manually deleting the `.db` file.
 
 ---
 
 ## 16. Best Next Development Step
 
-**Build a web-based dashboard** that reads from the existing retrieval endpoints and displays:
+**Polish and Robustness:**
+Now that retrieval and the dashboard are implemented, shift focus to small, low-risk operational improvements.
 
-1. **Session list** — all sessions with status, scam type, turn count
-2. **Chat view** — conversation replay for any selected session
-3. **Intelligence panel** — extracted indicators for a session
-4. **Report card** — final report display
+1. Add CORS middleware to `src/main.py` (useful if an external frontend is built later).
+2. Add session TTL and cleanup to prevent memory/DB growth.
+3. Add rate limiting middleware.
+4. Enhance the dashboard with extra visualisations.
+5. Add structured logging instead of `print()` statements.
 
-The retrieval API already exists (`GET /api/sessions`, `/sessions/{id}`, `/reports/{id}`, `/indicators`).
-
-Before building the frontend:
-1. Add CORS middleware to `src/main.py` (required for any browser-based client)
-2. Build the frontend (recommended: plain HTML/CSS/JS served from FastAPI for simplicity, or a separate Vite/React app for a richer UI)
-
-This step does not touch scoring, extraction, reply generation, or the `POST /api/detect` endpoint.
+**Do not touch scoring, extraction, reply generation, or the `POST /api/detect` endpoint.**
 
 ---
 

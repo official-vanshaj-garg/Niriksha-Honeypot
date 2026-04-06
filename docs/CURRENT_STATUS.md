@@ -16,6 +16,8 @@ These features are implemented and verified by running `src/tests/test_chat.py` 
 | SQLite persistence | Sessions, messages, indicators, and reports stored in `data/agentic_ai_honeypot.db` via SQLModel |
 | Indicator tracking | Unique indicators (phone, UPI, bank, email, link, ref ID) upserted with `hit_count` across distinct sessions |
 | Retrieval endpoints | `GET /api/sessions`, `GET /api/sessions/{id}`, `GET /api/reports/{id}`, `GET /api/indicators` — all authenticated with `x-api-key` |
+| Health check | `GET /health` endpoint returning `{"status": "ok"}` |
+| Same-origin Dashboard | Built-in UI served by FastAPI at `GET /dashboard` |
 | LLM reply generation | Groq API + Llama 3.3 70B; persona-driven; context-aware |
 | Scam signal scoring | Regex-based cumulative scoring per session |
 | Intelligence extraction | Phones, bank accounts, UPI IDs, phishing links, emails, case IDs, policy numbers, order numbers, reference IDs |
@@ -47,15 +49,13 @@ These features are implemented and verified by running `src/tests/test_chat.py` 
 | Feature | Impact |
 |---|---|
 | Session cleanup / TTL | Memory grows without bound; no mechanism to expire old sessions |
-| Frontend / dashboard | No UI. The only interface is the REST API. |
 | Rate limiting | The endpoint can be hit without restriction |
-| CORS configuration | Browser-based clients cannot reach the API |
+| CORS configuration | External browser-based clients cannot reach the API |
 | Multi-tenant authentication | One shared `API_SECRET_KEY` for all clients |
 | Webhook / push delivery | `finalCallback` is returned in the response, not pushed to a callback URL |
 | Unit tests | `test_chat.py` is an integration harness requiring a running server; no pytest unit tests exist |
 | CI/CD pipeline | No automated build, test, or deployment pipeline |
 | Containerisation | No Dockerfile |
-| Health check endpoint | No `GET /health` or `GET /` route |
 | Structured logging | No `logging` module usage; all output is `print()` |
 | Input sanitisation | Raw text from requests goes directly to regex and LLM prompts |
 | ML-based entity extraction | Extraction is regex-only; no NER or ML model |
