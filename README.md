@@ -179,6 +179,9 @@ pip install -r requirements.txt
 
 # 5. Start the server
 python -m uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+
+# 6. Open the Dashboard
+# Visit http://localhost:8000/dashboard in your browser to view the sessions.
 ```
 
 > **Note on `API_SECRET_KEY`:** This is a password you choose yourself. It is not from Groq or any external service. Pick any string (e.g. `my-secret-123`) and use the same value in your `.env` and in `test_chat.py`.
@@ -313,6 +316,7 @@ See [docs/OVERVIEW.md](docs/OVERVIEW.md) for positioning details.
 | [docs/PROJECT_AUDIT.md](docs/PROJECT_AUDIT.md) | Detailed technical audit of the codebase |
 | [docs/DB_PLAN.md](docs/DB_PLAN.md) | Database integration plan (implemented) |
 | [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md) | AI assistant handoff document |
+| [docs/DASHBOARD_WALKTHROUGH.md](docs/DASHBOARD_WALKTHROUGH.md) | Visual guide to the built-in dashboard |
 
 ---
 

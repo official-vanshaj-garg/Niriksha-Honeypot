@@ -154,6 +154,7 @@ The core API pipeline, database persistence, and retrieval endpoints are complet
 | `docs/PROJECT_AUDIT.md` | Technical audit of the codebase |
 | `docs/DB_PLAN.md` | Database integration plan (already implemented) |
 | `docs/AI_HANDOFF.md` | This file |
+| `docs/DASHBOARD_WALKTHROUGH.md` | Visual guide to the built-in dashboard |
 | `docs/archive/` | Old pre-refactor versions of audit and feature docs |
 
 ---
