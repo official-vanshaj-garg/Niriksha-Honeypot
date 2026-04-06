@@ -313,6 +313,51 @@ async function loadIndicators() {
     $content().innerHTML = html;
 }
 
+// --------------- Repeated Threats ---------------
+
+async function loadRepeatedThreats() {
+    setActiveNav('repeated');
+    renderLoading('Loading repeated threats...');
+
+    const data = await apiFetch('/api/indicators');
+    if (!data) return;
+
+    const repeated = (data.indicators || []).filter(ind => ind.hitCount > 1);
+
+    if (repeated.length === 0) {
+        $content().innerHTML =
+            '<div class="empty-card"><p>No repeated threats found yet. Indicators need to be seen across multiple sessions.</p></div>';
+        return;
+    }
+
+    let html = '<div class="section-header">' +
+        '<h2>Repeated Threats</h2>' +
+        '<span class="section-count">' + repeated.length + ' correlated</span>' +
+        '</div>';
+
+    html += '<p style="color:var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">' +
+        '⚠️ Indicators seen across multiple sessions may represent reused scam infrastructure.' +
+        '</p>';
+
+    html += '<table class="indicators-table"><thead><tr>' +
+        '<th>Type</th><th>Value</th><th>Hit Count</th><th>First Seen</th><th>Last Seen</th>' +
+        '</tr></thead><tbody>';
+
+    for (const ind of repeated) {
+        const label = TYPE_LABELS[ind.type] || ind.type;
+        html += '<tr>' +
+            '<td><span class="type-badge">' + esc(ind.type) + '</span></td>' +
+            '<td class="mono">' + esc(ind.value) + '</td>' +
+            '<td><span class="hit-badge" style="background:var(--danger-dim);color:var(--danger);">' + ind.hitCount + '</span></td>' +
+            '<td>' + fmtDate(ind.firstSeenAt) + '</td>' +
+            '<td>' + fmtDate(ind.lastSeenAt) + '</td>' +
+            '</tr>';
+    }
+
+    html += '</tbody></table>';
+    $content().innerHTML = html;
+}
+
 // --------------- Initialization ---------------
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -345,6 +390,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     document.getElementById('nav-indicators').addEventListener('click', function () {
         if (apiKey) loadIndicators();
+    });
+    document.getElementById('nav-repeated').addEventListener('click', function () {
+        if (apiKey) loadRepeatedThreats();
     });
 
     // Auto-load if key already saved
