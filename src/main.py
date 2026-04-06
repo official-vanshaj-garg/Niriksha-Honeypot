@@ -36,6 +36,15 @@ async def serve_dashboard():
 app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
 # ============================================================
+# HEALTH CHECK
+# ============================================================
+
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+# ============================================================
 # RUN
 # ============================================================
 
