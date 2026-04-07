@@ -2,18 +2,18 @@
 
 **Project:** NIRIKSHA.ai — Agentic Honeypot for Scam Detection, Engagement, and Intelligence Extraction
 **Built for:** India AI Impact Buildathon 2026 (HCL GUVI)
-**Classification:** Research prototype
+**Classification:** Advanced Research Prototype & Security Defense Demo
 
 ---
 
 ## What the Project Does
 
-NIRIKSHA.ai is a backend API that acts as an AI-powered honeypot. When a scammer sends a message, instead of blocking or ignoring them, the system:
+NIRIKSHA.ai is an integrated Network Security backend and Operations Dashboard that acts as an AI-powered active-defense honeypot. When a scammer sends a message, instead of blocking or ignoring them, the system:
 
-1. Replies as a confused but cooperative person using an LLM (Llama 3.3 70B via Groq)
-2. Keeps the conversation going across multiple turns
+1. Replies as a confused but cooperative person using an Agentic LLM (Llama 3.3 70B via Groq)
+2. Keeps the conversation going across multiple turns (Tarpitting)
 3. Silently extracts identifying information the scammer reveals (phone number, UPI ID, bank account, phishing link, email, reference IDs)
-4. Produces a structured intelligence report after ~10 turns
+4. Produces a structured intelligence report and tracks cross-session reused infrastructure.
 
 The system never reveals that it is an AI. The scammer believes they are talking to a potential victim.
 
@@ -32,33 +32,31 @@ NIRIKSHA.ai trades one interaction for many. By keeping the scammer engaged, it 
 | Audience | Use |
 |---|---|
 | Researchers | Studying LLM-based social engineering defence, conversational AI for security, or scam intelligence gathering |
-| Academics / students | Demonstrable working prototype for a mini-project or final year project submission |
-| Hackathon evaluators | REST API that can be hit directly to demonstrate the full conversation + report pipeline |
-| Future product developers | Foundation for a SaaS tool targeting banks, telecoms, or cybercrime units |
+| Academics / students | Demonstrable working prototype for a network security mini-project submission |
+| Hackathon evaluators | API and Operations Dashboard that can be hit directly to demonstrate the full pipeline |
+| Operations Analysts | Security teams looking to export rapid high-fidelity IOCs into enterprise firewalls. |
 
 ---
 
 ## What Makes It Novel (Research Angle)
 
-The combination of three things is what makes this interesting as a research idea:
+The combination of three things is what makes this interesting as an active-defense system:
 
 1. **Agentic persona maintenance** — The LLM holds a consistent character across multiple turns without breaking.
 2. **Silent intelligence elicitation** — The agent strategically steers conversation to extract specific missing data types without the scammer realising they are being profiled.
-3. **Structured output** — The session ends with a machine-readable report, not just a conversation log.
-
-Using an LLM for the engagement side while using regex for the extraction side is a practical design choice that keeps the extraction reliable and the conversation natural.
+3. **Automated SOC Triage** — The session ends with a machine-readable report, classifying threat severity, correlating reused indicators, and instantly generating artifact blocklists.
 
 ---
 
 ## Current Scope
 
-The project is a backend API only. It has:
-- One REST endpoint (`POST /api/detect`)
-- In-memory session state (no database)
-- No frontend, no dashboard, no deployment infrastructure
-- A local integration test harness
+The project is fully integrated for end-to-end demonstration. It features:
+- Core REST API (`POST /api/detect`) acting as the intelligent pipeline.
+- SQLite Database automatically preserving sessions, reports, and indicators natively.
+- Seamless Operations Dashboard (`/dashboard`) circumventing CORS for immediate graphical presentation.
+- Live Deception Console for manual presentations.
 
-It is not production-ready and is not hardened for public deployment. It is a working demonstration of the core idea.
+It is highly functional within a local/academic context but requires enterprise hardening (PostgreSQL, Rate Limiting, Multi-tenant JWT Auth) before a public un-sandboxed deployment.
 
 ---
 
@@ -66,7 +64,7 @@ It is not production-ready and is not hardened for public deployment. It is a wo
 
 | Track | Assessment |
 |---|---|
-| Hackathon submission | Complete and working. Scored 96.65/100 on the built-in evaluation harness. |
-| College mini-project | Suitable. The pipeline is complete, the idea is clear, and the code is clean. |
-| Research paper | The core idea is novel and publishable. Missing: real conversation dataset, baseline comparison, independent evaluation, ethics review. |
-| Production system | Not ready. Missing: database, frontend, rate limiting, auth hardening, monitoring. |
+| Hackathon submission | Complete and working. Scored highly on built-in evaluation harness and features a polished, presentation-ready dashboard. |
+| College mini-project | Excellent. The pipeline is complete, the Network Security alignment is evident, and the code is highly modularized. |
+| Research paper | The core idea is novel and publishable. Next steps: large-scale conversation dataset, baseline comparison, IRB ethics review. |
+| Enterprise System | V2 Target. Requires transitioning SQLite to PostgreSQL, adding Docker containers, and STIX/TAXII export feeds. |

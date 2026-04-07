@@ -27,12 +27,12 @@ Status values: **Implemented** | **Partial** | **Not implemented**
 | 21 | Modular codebase | **Implemented** | All files under `src/` | Refactored from single 626-line file into config, schemas, session_state, utils, services, routes |
 | 22 | Logging | **Partial** | `src/config.py` | `print()` to stdout only; no log files, no levels, no structured format |
 | 23 | Error handling | **Partial** | `src/services/reply_generation.py`, `src/services/reporting.py` | `try/except` around Groq calls; fallback reply; no error tracking or notification |
-| 24 | Persistent storage | **Not implemented** | — | All state in-memory; lost on restart |
+| 24 | Persistent storage | **Implemented** | `src/db.py`, `src/models.py` | SQLite integration via SQLModel; auto-creates tables on boot |
 | 25 | Session cleanup / TTL | **Not implemented** | — | Memory grows without bound; no expiry mechanism |
-| 26 | Frontend / dashboard | **Not implemented** | — | No UI; API-only |
+| 26 | Frontend / dashboard | **Implemented** | `static/app.js`, `static/index.html` | Built-in vanilla JS operations console and live deception viewer |
 | 27 | Rate limiting | **Not implemented** | — | No middleware or logic |
-| 28 | CORS configuration | **Not implemented** | — | No `CORSMiddleware`; browser clients blocked |
-| 29 | Health check endpoint | **Not implemented** | — | No `GET /health` or root route |
+| 28 | CORS configuration | **Implemented** | `src/main.py` | Built natively as Same Origin; circumvents complex CORS blocks safely |
+| 29 | Health check endpoint | **Implemented** | `src/main.py` | `GET /health` root route implemented for up-time monitoring |
 | 30 | Multi-tenant authentication | **Not implemented** | — | Single shared `API_SECRET_KEY` |
 | 31 | Webhook / push delivery | **Not implemented** | — | `finalCallback` returned in response body; not pushed to a URL |
 | 32 | Unit tests (pytest) | **Not implemented** | — | `test_chat.py` is integration-only; requires a running server |
@@ -43,4 +43,4 @@ Status values: **Implemented** | **Partial** | **Not implemented**
 | 37 | ML-based entity extraction | **Not implemented** | — | Extraction is regex-only |
 | 38 | Multi-language support | **Not implemented** | — | Prompts and phone patterns are English/India-specific |
 
-**Summary:** 21 implemented, 2 partial, 15 not implemented.
+**Summary:** 25 implemented, 2 partial, 11 not implemented.

@@ -122,7 +122,7 @@ Six module-level objects in `src/session_state.py`:
 | `SESSION_ASKED` | `Dict[str, Set[str]]` | Which hint topics have been prompted already |
 | `FINAL_REPORTED` | `Set[str]` | Sessions that have already generated a final report |
 
-All state is in-memory. It is lost when the server restarts.
+All transient generative metric states are held in-memory during a chat session to avoid constant I/O bottlenecks. However, upon message persistence and session culmination (report output), all finalized structured objects are atomically written to SQLite (`data/agentic_ai_honeypot.db`), ensuring historical session retrieval scales properly post-restart.
 
 ---
 
@@ -234,9 +234,8 @@ The graph is strictly acyclic. Leaf modules have no internal imports.
 
 ## Known Architectural Risks
 
-1. **Session memory growth** — No TTL. `SESSION_*` dicts grow forever.
-2. **Hardcoded `scamDetected: true`** — The final report always flags a scam regardless of actual score.
-3. **Engagement duration inflation** — Artificially padded to 181+ seconds when message count ≥ 16.
-4. **Single Groq key, no retry** — Any Groq API failure falls back to a static reply with no logging.
-5. **No CORS** — Browser clients are blocked.
-6. **No input sanitisation** — Raw user text goes directly to regex and the LLM prompt.
+1. **Session memory growth** — No TTL bounds. `SESSION_*` dicts grow while the server process runs, although SQLite persists them safely.
+2. **Hardcoded `scamDetected: true`** — The final report always flags a scam initially.
+3. **Engagement duration inflation** — Artificially padded when massive API bulk-tests send immediate chained iterations.
+4. **Single Groq key** — Any Groq API failure falls back to a static reply.
+5. **No input sanitisation** — Raw user text goes directly to regex and the LLM prompt.

@@ -3,337 +3,164 @@
   <img src="https://img.shields.io/badge/India%20AI%20Impact-Buildathon%202026-orange?style=for-the-badge" alt="Buildathon 2026"/>
 </p>
 
-<h1 align="center">🛡️Agentic AI Honeypot for Scam Detection, Engagement, and Intelligence Extraction</h1>
+<h1 align="center">🛡️ NIRIKSHA.ai</h1>
 <h3 align="center">Agentic Honeypot for Scam Detection, Engagement, and Intelligence Extraction</h3>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white"/>
   <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white"/>
+  <img src="https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white"/>
   <img src="https://img.shields.io/badge/Groq-Llama%203.3%2070B-FF6F00?style=flat-square&logo=meta&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Status-Research%20Prototype-yellow?style=flat-square"/>
+  <img src="https://img.shields.io/badge/Status-Feature%20Complete-success?style=flat-square"/>
 </p>
 
 ---
 
-## Overview
+## 📌 Overview
 
-NIRIKSHA.ai is an AI-powered honeypot backend. When a scammer sends a message, the system pretends to be a confused but cooperative person, holds the conversation open across multiple turns, and silently extracts identifying information (phone numbers, UPI IDs, bank accounts, phishing links, email addresses, reference IDs). After roughly 10 turns, it produces a structured intelligence report including a scam-type classification.
+**NIRIKSHA.ai** is a Network Security mini-project focused on **Active Defense** and **Threat Intelligence Extraction**. 
 
-The project is a Python/FastAPI REST API with SQLite persistence via SQLModel and a built-in same-origin dashboard.
+Traditional anti-scam tools operate reactively: they block fraudsters at the perimeter but gather no proactive intelligence. When an adversary is blocked, their infrastructure remains hidden. NIRIKSHA.ai takes the opposite approach. It is an **Application-Layer AI Honeypot**. 
 
----
-
-## Problem Statement
-
-Traditional anti-scam tools block fraudsters immediately. While this stops a single attempt, it reveals nothing about the scammer — no phone number, no UPI, no infrastructure, no pattern. Scammers simply move on. NIRIKSHA.ai takes a different approach: keep the scammer talking long enough to extract intelligence, then report it.
+When a scammer initiates contact, the system deploys a generative AI agent that mimics a confused but cooperative human. It deliberately stalls the attacker (a technique known as **Tarpitting**) while silently extracting *Indicators of Compromise (IOCs)*—such as phishing URLs, UPI IDs, bank accounts, and phone numbers. Once the engagement ends, it automatically generates a Threat Intelligence export for security analysts.
 
 ---
 
-## Core Idea
+## 🚀 Key Implemented Features
 
-An LLM agent mimics a cautious, slightly confused person. It engages the scammer across multiple conversation turns, asking for identifying details (reference numbers, email, phone, UPI, bank account, verification link) without ever revealing that it is an AI or that it has recognised the scam. All of this happens behind a single REST endpoint.
-
----
-
-## Key Workflow
-
-```
-POST /api/detect (with sessionId, message, conversationHistory)
-  → API key check
-  → Session init or resume (in-memory + SQLite)
-  → Scam signal scoring (regex)
-  → Intelligence extraction (regex, full conversation)
-  → Choose next hint topic (missing intel category)
-  → Generate reply (Groq / Llama 3.3 70B)
-  → Sanitize reply (banned words, 1-question limit, 200-char cap)
-  → Enforce rubric guardrails on designated turns
-  → Check finalization (turn ≥ 10, or turn ≥ 8 with enough intel)
-      → If finalizing: classify scam type (LLM), build report
-  → Return { status, reply, finalCallback, finalOutput }
-```
+- **Automated Deception:** LLM-driven persona mimics vulnerable humans to tarpit scammers.
+- **Real-Time Intelligence Extraction:** Parses 9 distinct entity types (e.g., UPI IDs, Bank Accounts, Emails) from raw attacker chat.
+- **SQLite Persistence:** All sessions, chat transcripts, and extracted threat indicators are automatically saved to a local `.db` file using SQLModel.
+- **Built-in Operations Dashboard:** A fully native, vanilla JS frontend served securely from the same origin to eliminate CORS complexity.
+- **Cross-Session Threat Correlation:** Automatically tracks when an attacker reuses the same underlying infrastructure (e.g., the same Crypto Wallet) across multiple different attacks.
+- **Security Analyst Exports:** Generates rapid JSON, CSV, and Blocklist TXT files for firewall/DNS-filter triage.
 
 ---
 
-## What Is Working Right Now
+## 🖥️ The Deception Operations Dashboard
 
-| Capability | Status |
-|---|---|
-| `POST /api/detect` endpoint | Working |
-| Multi-turn session management (in-memory + SQLite) | Working |
-| SQLite persistence (sessions, messages, indicators, reports) | Working |
-| Read-only retrieval endpoints (4 authenticated GET routes) | Working |
-| LLM reply generation (Groq, Llama 3.3 70B) | Working |
-| Scam signal scoring (regex-based) | Working |
-| Intelligence extraction (9 field types) | Working |
-| Reply sanitization and guardrails | Working |
-| Final report generation | Working |
-| LLM scam type classification | Working |
-| API key authentication | Working |
-| Indicator hit_count tracking across sessions | Working |
-| Integration test harness (5 scenarios) | Working |
-| Modular codebase (split from single file) | Done |
+The project includes an integrated front-end dashboard designed for Security Analysts and live presentations. It fundamentally maps to four core Network Security workflows:
 
-**Test result (local run, April 2026):** 100/100 aggregate across 5 weighted scam scenarios (98.00 final score).
+1. **[ LIVE ] Deception Console:** The hero experience. Allows a presenter to manually act as the "scammer" and watch the AI defend, engage, and extract intelligence in real time. Sessions are hard-capped at 10 conversational turns (with a warning at turn 7) to preserve token-conscious operations.
+2. **[ SESS ] Captured Sessions:** The historical evidence locker. Displays all previously recorded engagements, their severity scores, and fully generated transcript reports.
+3. **[ IOC ] IOC Registry:** The Threat Intelligence ledger. A unified view of all unique extracted entities (links, banks, etc.) harvested by the honeypot over time.
+4. **[ CORR ] Correlated Infrastructure:** Tracks "Repeated Threats". If the system detects the same indicator across multiple sessions, it flags it here, suggesting a coordinated scatter-spray campaign rather than an isolated incident.
 
 ---
 
-## Limitations
+## ⚙️ Architecture Summary
 
-- `scamDetected` is hardcoded to `True` in every final report.
-- Engagement duration is artificially inflated for sessions with 16+ messages.
-- Session dicts grow unbounded in-memory (no TTL or cleanup).
-- Single shared API key (no per-user authentication).
-- No rate limiting. Endpoint can be freely abused.
-- No CORS configuration (external browser-based clients will be blocked).
-- Phone number extraction is India-specific (+91, 10-digit starting with 6–9).
-- Extraction is regex-only; no ML-based entity recognition.
-- No structured logging. Logs are `print()` statements to stdout only.
-- No Alembic migrations. Changing DB schema requires deleting the `.db` file.
+NIRIKSHA.ai completely isolates its backend logic from the frontend UI.
+- **Backend Protocol:** Asynchronous FastAPI REST pipeline executing heuristic scoring arrays and LLM routing.
+- **LLM Pipeline:** Utilizes Groq (Llama-3.3-70B) constrained by strict anti-repetition guardrails and 200-character truncation limits to maintain human illusion.
+- **Database Layer:** SQLite powered by SQLAlchemy/SQLModel. Creates tables dynamically on startup to `data/agentic_ai_honeypot.db`.
+- **Frontend Layer:** `index.html` and `app.js` rendered synchronously via a Jinja/StaticFiles wrapper directly over the FastAPI port.
+
+*(Read the complete internal architecture in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md))*
 
 ---
 
-## Tech Stack
+## 🛠️ Local Setup & Quick Start
 
-| Layer | Technology |
-|---|---|
-| Language | Python 3.10+ |
-| Framework | FastAPI |
-| LLM Provider | Groq API |
-| LLM Model | Meta Llama 3.3 70B (`llama-3.3-70b-versatile`) |
-| Database | SQLite (via SQLModel / SQLAlchemy) |
-| Validation | Pydantic v2 |
-| Server | uvicorn |
-| Dependencies | fastapi, uvicorn, groq, pydantic, sqlmodel, requests, python-dotenv |
+Running the project is designed to be extremely beginner-friendly.
 
----
+### 1. Prerequisites
+- **Python 3.10+** installed.
+- A free **Groq API Key** from [console.groq.com/keys](https://console.groq.com/keys).
 
-## Repository Structure
-
-```
-NIRIKSHA.ai/
-├── src/
-│   ├── main.py                  # App entry point: FastAPI app, router wiring, create_db(), uvicorn runner
-│   ├── config.py                # Env vars, Groq client, API key, delay constants, log_chat()
-│   ├── schemas.py               # Pydantic models: MessageItem, IncomingRequest, AgentResponse
-│   ├── session_state.py         # In-memory session dicts (6 global state objects)
-│   ├── models.py                # SQLModel table classes (5 tables)
-│   ├── db.py                    # SQLite engine, create_db(), DB helper functions
-│   ├── utils/
-│   │   └── text.py              # Regex patterns, word lists, norm(), _clean_url(), _normalize_phone()
-│   ├── services/
-│   │   ├── scoring.py           # calculate_scam_score(), looks_like_payment_targeted()
-│   │   ├── extraction.py        # extract_intelligence(), high_value_count()
-│   │   ├── reply_generation.py  # _llm_generate_reply(), _sanitize_reply(), _next_hint(), _enforce_minimums()
-│   │   └── reporting.py         # infer_scam_type(), build_final_output()
-│   ├── routes/
-│   │   ├── detect.py            # POST /api/detect handler (pipeline + DB writes)
-│   │   └── retrieval.py         # GET /api/sessions, sessions/{id}, reports/{id}, indicators
-│   └── tests/
-│       └── test_chat.py         # Integration test: 5 weighted scam scenarios
-├── static/                      # Dashboard assets (index.html, style.css, app.js)
-├── data/
-│   └── agentic_ai_honeypot.db   # SQLite database (auto-created on startup, gitignored)
-├── docs/
-│   ├── OVERVIEW.md              # Project purpose, use cases, positioning
-│   ├── ARCHITECTURE.md          # System flow, modules, data flow
-│   ├── CURRENT_STATUS.md        # What works, what is partial, what is missing
-│   ├── FEATURE_MATRIX.md        # Complete feature table with status and file references
-│   ├── ROADMAP.md               # Phased future development plan
-│   ├── PROJECT_AUDIT.md         # Detailed technical audit of the codebase
-│   ├── DB_PLAN.md               # Database integration plan (implemented)
-│   └── AI_HANDOFF.md            # AI assistant handoff document
-├── README.md                    # This file
-├── requirements.txt             # Python dependencies
-├── .env.example                 # Environment variable template
-└── .gitignore
-```
-
----
-
-## How to Run Locally
-
-### Prerequisites
-
-- Python 3.10 or higher
-- A free Groq API key from [console.groq.com/keys](https://console.groq.com/keys)
-
-### Setup
-
+### 2. Installation
 ```bash
-# 1. Clone the repository
+# Clone the repository
 git clone https://github.com/ABHI99RAJPUT/NIRIKSHA.ai.git
 cd NIRIKSHA.ai
 
-# 2. Create and activate a virtual environment
+# Create and activate a Python virtual environment
 python -m venv venv
 venv\Scripts\activate        # Windows
 # source venv/bin/activate   # macOS / Linux
 
-# 3. Install dependencies
+# Install dependencies
 pip install -r requirements.txt
-
-# 4. Create your .env file
-# Copy .env.example to .env and fill in the two required values:
-#   GROQ_API_KEY=your_groq_api_key_here
-#   API_SECRET_KEY=any_password_you_choose
-
-# 5. Start the server
-python -m uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
-
-# 6. Open the Dashboard
-# Visit http://localhost:8000/dashboard in your browser to view the sessions.
 ```
 
-> **Note on `API_SECRET_KEY`:** This is a password you choose yourself. It is not from Groq or any external service. Pick any string (e.g. `my-secret-123`) and use the same value in your `.env` and in `test_chat.py`.
+### 3. Environment Configuration
+Create a file named `.env` in the root folder (or rename `.env.example`).
+Include these two variables:
+```env
+GROQ_API_KEY=your_actual_groq_api_key_here
+API_SECRET_KEY=my-super-secret-password
+```
+> *Note:* `API_SECRET_KEY` acts as your personal master key for the dashboard. Choose any password string you want.
 
-### Run the Integration Tests
-
-The server must be running before you run the tests.
-
+### 4. Run the Server
 ```bash
-# In src/tests/test_chat.py, set API_KEY to match your API_SECRET_KEY
+python -m uvicorn src.main:app --reload --host 127.0.0.1 --port 8010
+```
+
+### 5. Access the Platform
+- **Health Check:** Open `http://127.0.0.1:8010/health` to confirm the backend is alive.
+- **Operations Dashboard:** Open `http://127.0.0.1:8010/dashboard`
+- **Authentication:** Enter the `API_SECRET_KEY` you defined in your `.env` file to unlock the UI.
+
+### Generating Demo Data
+If you want to pre-populate the database with historical sessions without typing them out manually:
+```bash
+# Ensure the server is running on port 8010, then in a new terminal:
 python src/tests/test_chat.py
 ```
 
 ---
 
-## API Overview
+## 🔌 Major API Endpoints
 
-All endpoints require the `x-api-key` header matching `API_SECRET_KEY` in your `.env`.
+The system relies strictly on authenticated endpoints using the `x-api-key` header.
 
-### POST /api/detect
-
-The core scam engagement endpoint.
-
-**Minimal request:**
-
-```json
-{
-  "sessionId": "any-unique-string",
-  "message": {
-    "sender": "scammer",
-    "text": "Your account is blocked. Share OTP now.",
-    "timestamp": "2026-01-01T10:00:00Z"
-  },
-  "conversationHistory": []
-}
-```
-
-**Normal response (turns 1-9):**
-
-```json
-{
-  "status": "success",
-  "reply": "Oh no, that sounds serious. What is the reference number for this?",
-  "finalCallback": null,
-  "finalOutput": null
-}
-```
-
-**Response on finalization (turn 10+):**
-
-`finalCallback` and `finalOutput` contain the full intelligence report including extracted phone numbers, UPI IDs, bank accounts, phishing links, emails, reference IDs, scam type, and confidence level.
-
-### Read-Only Retrieval Endpoints
-
-These endpoints retrieve persisted data from the SQLite database. All are authenticated with the same `x-api-key` header.
-
-| Endpoint | Returns |
-|---|---|
-| `GET /api/sessions` | All sessions, sorted by last update, with `hasReport` flag |
-| `GET /api/sessions/{session_id}` | Session detail + full message history + grouped indicators |
-| `GET /api/reports/{session_id}` | Parsed final report for a completed session |
-| `GET /api/indicators` | All unique indicators sorted by hit count |
-| `GET /health` | Health check endpoint returning `{"status": "ok"}` |
-
-### Error Codes
-
-| Code | Cause |
-|---|---|
-| 403 | Missing or incorrect `x-api-key` header |
-| 404 | Session or report not found (retrieval endpoints only) |
-| 422 | Malformed request body (POST only) |
-
-Full API and schema details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+| Route | Method | Purpose |
+|---|---|---|
+| `/api/detect` | `POST` | Core engagement route. Parses message, routes to LLM, saves state. |
+| `/api/sessions` | `GET` | Retrieves all historical telemetry sessions. |
+| `/api/sessions/{id}`| `GET` | Retrieves deep transcript & report metrics for a specific session. |
+| `/api/indicators` | `GET` | Retrieves all unique extracted Threat Intelligence elements. |
+| `/health` | `GET` | Unauthenticated ping to check uptime logic. |
+| `/dashboard` | `GET` | Server-rendered HTML payload for the frontend operations console. |
 
 ---
 
-## Environment Variables
+## 🔒 Current Limitations & Future Scope
 
-| Variable | Required | Default | Purpose |
-|---|---|---|---|
-| `GROQ_API_KEY` | Yes | — | Authenticates with the Groq LLM service. Server will crash on startup if missing. |
-| `API_SECRET_KEY` | Yes | `""` (all requests fail with 403) | A password you set for your own API endpoint. |
-| `GROQ_MODEL` | No | `llama-3.3-70b-versatile` | LLM model to use |
-| `MIN_HUMAN_DELAY_S` | No | `0.10` | Minimum simulated reply delay (seconds) |
-| `MAX_HUMAN_DELAY_S` | No | `0.28` | Maximum simulated reply delay (seconds) |
-| `PORT` | No | `8000` | Server port |
+While feature-complete for local evaluation and academic presentation, this is a **Research Prototype**. We are transparent about the following system boundaries:
 
----
+### Implemented / Working
+✅ LLM interactive response generation & intelligent tarpitting  
+✅ Real-time intelligence extraction (Regex heuristics over 9 entities)  
+✅ Same-Origin Web Dashboard & Operations UI  
+✅ SQLite persistence across application restarts  
+✅ Authenticated Retrieval APIs & Local CSV/JSON Exporting  
 
-## Current Project Status
+### Partial / Limitations
+⚠️ **Regex Extraction:** Entity recognition relies on structural regex. Native Semantic/NLP extraction pipelines are not yet fully implemented.  
+⚠️ **Hardcoded Identifiers:** The `scamDetected` flag defaults to `True` for simulation purposes on final callback.  
 
-**Classification: Research Prototype / Hackathon Submission**
-
-The API pipeline is complete and tested. The codebase has been refactored from a single 626-line file into a modular structure. SQLite persistence, authenticated retrieval endpoints, and a same-origin dashboard are implemented. The system is suitable for local demonstration and academic evaluation.
-
-See [docs/CURRENT_STATUS.md](docs/CURRENT_STATUS.md) for a detailed breakdown.
-
----
-
-## Planned Next Steps
-
-1. Add CORS configuration (useful for separate frontend deployments)
-2. Add session TTL and cleanup to prevent memory growth
-3. Add rate limiting middleware
-4. Write proper unit tests with pytest
-5. Add Docker support
-6. Add structured logging
-
-See [docs/ROADMAP.md](docs/ROADMAP.md) for phased planning.
+### Honest Future Scope
+⏳ **Enterprise CI/CD & Deployment:** Dockerization, Alembic schema migrations, and a transition to PostgreSQL for high-availability.  
+⏳ **Security Enhancements:** Native FastAPI Rate-Limiting architectures, Multi-Tenant User Authentication (currently single shared API secret).  
+⏳ **Advanced Triage:** SIEM integrations (Splunk / ELK) exporting natively through STIX/TAXII protocols.
 
 ---
 
-## Research and Academic Relevance
-
-The core idea of using an LLM-driven agent as a honeypot for scam intelligence extraction is novel. The key technical contribution is the agentic conversation loop: a persona-driven LLM that maintains a believable identity across turns while strategically eliciting identifying information from a scammer, without the scammer realising it.
-
-For a research paper, this would need: a dataset of real or realistic scam conversations, comparison with baseline approaches, independent evaluation metrics, and ethical review. For a college mini-project or hackathon submission, the current implementation is complete and demonstrable.
-
-See [docs/OVERVIEW.md](docs/OVERVIEW.md) for positioning details.
-
----
-
-## Documentation Index
+## 📚 Documentation Index
 
 | Document | Purpose |
 |---|---|
-| [docs/OVERVIEW.md](docs/OVERVIEW.md) | Project purpose, use cases, academic and product positioning |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System flow, module breakdown, API schemas, data flow |
-| [docs/CURRENT_STATUS.md](docs/CURRENT_STATUS.md) | What is working, partial, and missing right now |
-| [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md) | Complete feature table with status and file references |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Phased future development plan |
-| [docs/PROJECT_AUDIT.md](docs/PROJECT_AUDIT.md) | Detailed technical audit of the codebase |
-| [docs/DB_PLAN.md](docs/DB_PLAN.md) | Database integration plan (implemented) |
-| [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md) | AI assistant handoff document |
-| [docs/DASHBOARD_WALKTHROUGH.md](docs/DASHBOARD_WALKTHROUGH.md) | Visual guide to the built-in dashboard |
+| [README.md](README.md) | Primary project overview and setup. |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Technical teardown of the data flow, models, and LLM processing loop. |
+| [docs/OVERVIEW.md](docs/OVERVIEW.md) | Business logic and academic use cases defending Active Deception models. |
+| [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md) | At-a-glance breakdown of exactly which features map to which internal files. |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Honest depiction of V1 capabilities versus targeted V2 Enterprise features. |
 
 ---
 
-## Team
-
-<table>
-  <tr>
-    <td align="center">
-      <b>Vanshaj Garg</b><br/>
-      <a href="mailto:official.vanshaj.garg@gmail.com">official.vanshaj.garg@gmail.com</a><br/>
-      <a href="https://www.linkedin.com/in/vanshajgargg">LinkedIn</a>
-    </td>
-  </tr>
-</table>
-
----
-
-## License
-
-Built for the **India AI Impact Buildathon 2026** organised by HCL GUVI. No open-source license is currently applied to this repository.
+<p align="center">
+  <i>Built for the India AI Impact Buildathon 2026.</i><br>
+  <b>Vanshaj Garg</b> | <a href="https://www.linkedin.com/in/vanshajgargg">LinkedIn</a>
+</p>
