@@ -159,8 +159,3 @@ While feature-complete for local evaluation and academic presentation, this is a
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Honest depiction of V1 capabilities versus targeted V2 Enterprise features. |
 
 ---
-
-<p align="center">
-  <i>Built for the India AI Impact Buildathon 2026.</i><br>
-  <b>Vanshaj Garg</b> | <a href="https://www.linkedin.com/in/vanshajgargg">LinkedIn</a>
-</p>
