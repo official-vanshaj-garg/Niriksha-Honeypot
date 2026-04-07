@@ -25,21 +25,21 @@ function fmtDate(iso) {
 }
 
 const TYPE_LABELS = {
-    phone: '📱 Phone Numbers',
-    bank_account: '🏦 Bank Accounts',
-    upi: '💳 UPI IDs',
-    phishing_link: '🔗 Phishing Links',
-    email: '📧 Email Addresses',
-    reference_id: '🔖 Reference IDs'
+    phone: 'TEL',
+    bank_account: 'BANK',
+    upi: 'UPI',
+    phishing_link: 'URL',
+    email: 'EMAIL',
+    reference_id: 'REF'
 };
 
 const EXT_KEY_LABELS = {
-    phoneNumbers: '📱 Phone Numbers',
-    bankAccounts: '🏦 Bank Accounts',
-    upiIds: '💳 UPI IDs',
-    phishingLinks: '🔗 Phishing Links',
-    emailAddresses: '📧 Email Addresses',
-    referenceIds: '🔖 Reference IDs'
+    phoneNumbers: 'TEL',
+    bankAccounts: 'BANK',
+    upiIds: 'UPI',
+    phishingLinks: 'URL',
+    emailAddresses: 'EMAIL',
+    referenceIds: 'REF'
 };
 
 // --------------- API ---------------
@@ -88,8 +88,11 @@ function setActiveNav(view) {
 
 // --------------- Sessions List ---------------
 
-async function loadSessions() {
+let currentSessionFilter = 'completed';
+
+async function loadSessions(filter = null) {
     setActiveNav('sessions');
+    if (filter) currentSessionFilter = filter;
     renderLoading('Loading sessions...');
 
     const data = await apiFetch('/api/sessions');
@@ -101,26 +104,54 @@ async function loadSessions() {
         return;
     }
 
-    let html = '<div class="section-header">' +
-        '<h2>Sessions</h2>' +
-        '<span class="section-count">' + data.sessions.length + ' total</span>' +
-        '</div><div class="session-grid">';
+    let displaySessions = data.sessions.map(s => {
+        if (s.hasReport) s.sessionStatus = 'completed';
+        return s;
+    });
 
-    for (const s of data.sessions) {
-        html += '<div class="session-card" onclick="loadSessionDetail(\'' + esc(s.sessionId) + '\')">' +
-            '<div class="session-top">' +
-                '<span class="session-id">' + esc(s.sessionId.substring(0, 16)) + '...</span>' +
-                '<span class="badge badge-' + esc(s.sessionStatus) + '">' + esc(s.sessionStatus) + '</span>' +
-            '</div>' +
-            '<div class="session-metrics">' +
-                '<div class="metric"><span class="metric-label">Turns</span><span class="metric-value">' + s.turnCount + '</span></div>' +
-                '<div class="metric"><span class="metric-label">Score</span><span class="metric-value">' + s.scamScore + '</span></div>' +
-                '<div class="metric"><span class="metric-label">Report</span><span class="metric-value">' + (s.hasReport ? '✅' : '—') + '</span></div>' +
-            '</div>' +
-        '</div>';
+    if (currentSessionFilter === 'completed') {
+        displaySessions = displaySessions.filter(s => s.sessionStatus === 'completed');
+    } else if (currentSessionFilter === 'active') {
+        displaySessions = displaySessions.filter(s => s.sessionStatus !== 'completed');
     }
 
+    let html = '<div class="section-header">' +
+        '<h2>Captured Sessions</h2>' +
+        '<span class="section-count">' + displaySessions.length + ' entries (' + currentSessionFilter + ')</span>' +
+        '</div>';
+
+    html += '<p style="color:var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">' +
+        '[!] Stored history of captured scam interactions and honeypot extractions.' +
+        '</p>';
+
+    html += '<div style="margin-bottom:20px; display:flex; gap:10px;">';
+    ['all', 'completed', 'active'].forEach(f => {
+        const activeCls = (f === currentSessionFilter) ? ' active' : '';
+        html += '<button class="export-btn' + activeCls + '" onclick="loadSessions(\'' + f + '\')">' + 
+                f.charAt(0).toUpperCase() + f.slice(1) + '</button>';
+    });
     html += '</div>';
+
+    if (displaySessions.length === 0) {
+        html += '<div class="empty-card"><p>No ' + currentSessionFilter + ' sessions found.</p></div>';
+    } else {
+        html += '<div class="session-grid">';
+        for (const s of displaySessions) {
+            html += '<div class="session-card" onclick="loadSessionDetail(\'' + esc(s.sessionId) + '\')">' +
+                '<div class="session-top">' +
+                    '<span class="session-id">' + esc(s.sessionId.substring(0, 16)) + '...</span>' +
+                    '<span class="badge badge-' + esc(s.sessionStatus) + '">' + esc(s.sessionStatus).toUpperCase() + '</span>' +
+                '</div>' +
+                '<div class="session-metrics">' +
+                    '<div class="metric"><span class="metric-label">Turns</span><span class="metric-value">' + s.turnCount + '</span></div>' +
+                    '<div class="metric"><span class="metric-label">Score</span><span class="metric-value">' + s.scamScore + '</span></div>' +
+                    '<div class="metric"><span class="metric-label">Report</span><span class="metric-value">' + (s.hasReport ? '<span style="color:var(--success)">[READY]</span>' : '—') + '</span></div>' +
+                '</div>' +
+            '</div>';
+        }
+        html += '</div>';
+    }
+
     $content().innerHTML = html;
 }
 
@@ -134,13 +165,19 @@ async function loadSessionDetail(sessionId) {
     if (!data) return;
 
     const s = data.session;
+    
+    // Status consistency
+    if (data.reportAvailable) {
+        s.sessionStatus = 'COMPLETED';
+    }
+    
     let html = '<button class="back-btn" onclick="loadSessions()">← Back to Sessions</button>';
 
     // Session info card
     html += '<div class="detail-grid">';
 
     // Info
-    html += '<div class="detail-card"><h3>📋 Session Info</h3><div class="info-grid">' +
+    html += '<div class="detail-card"><h3>[ SESSION_METADATA ]</h3><div class="info-grid">' +
         infoItem('Session ID', s.sessionId) +
         infoItem('Status', s.sessionStatus) +
         infoItem('Turns', s.turnCount) +
@@ -154,12 +191,12 @@ async function loadSessionDetail(sessionId) {
         '</div></div>';
 
     // Messages
-    html += '<div class="detail-card"><h3>💬 Conversation (' + data.messages.length + ' messages)</h3>' +
+    html += '<div class="detail-card"><h3>[ TRANSCRIPT ] (' + data.messages.length + ' messages)</h3>' +
         '<div class="chat-container">';
 
     for (const m of data.messages) {
         const cls = m.sender === 'scammer' ? 'msg-scammer' : 'msg-honeypot';
-        const label = m.sender === 'scammer' ? '🔴 Scammer' : '🛡️ Honeypot';
+        const label = m.sender === 'scammer' ? 'TARGET' : 'SYSTEM';
         html += '<div class="msg ' + cls + '">' +
             '<div class="msg-meta">' +
                 '<span class="msg-sender">' + label + '</span>' +
@@ -172,7 +209,7 @@ async function loadSessionDetail(sessionId) {
     html += '</div></div>';
 
     // Indicators
-    html += '<div class="detail-card"><h3>🎯 Extracted Indicators</h3>';
+    html += '<div class="detail-card"><h3>[ EXTRACTED_IOCS ]</h3>';
     let hasAny = false;
     for (const [key, label] of Object.entries(EXT_KEY_LABELS)) {
         const vals = data.indicators[key];
@@ -193,7 +230,7 @@ async function loadSessionDetail(sessionId) {
     // Report button
     if (data.reportAvailable) {
         html += '<div style="text-align:center; margin-top: 8px;">' +
-            '<button class="report-btn" onclick="loadReport(\'' + esc(s.sessionId) + '\')">📄 View Full Report</button>' +
+            '<button class="report-btn" onclick="loadReport(\'' + esc(s.sessionId) + '\')">[ VIEW_REPORT ]</button>' +
             '</div>';
     }
 
@@ -359,19 +396,19 @@ async function loadReport(sessionId) {
     else if (severityScore >= 3) { severity = "High"; sevColor = "var(--danger)"; }
     else if (severityScore >= 1) { severity = "Medium"; sevColor = "#f59e0b"; }
     
-    html += '<h3 style="margin: 24px 0 14px;">🛡️ Security Analyst Triage</h3>';
-    html += '<div style="display:flex; flex-wrap:wrap; gap:20px; background:var(--bg-input); border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 24px;">';
+    html += '<h3 style="margin: 24px 0 14px;">[ SECURITY_TRIAGE ]</h3>';
+    html += '<div class="triage-container">';
     
     // Severity & Actions
-    html += '<div style="flex: 1; min-width: 250px;">';
-    html += '<h4 style="margin-top:0; font-size: 1.1rem;">Severity: <span style="color:' + sevColor + ';">' + severity + '</span></h4>';
-    html += '<ul style="margin: 8px 0; padding-left: 20px; color: var(--text-secondary); font-size: 0.9rem;">';
+    html += '<div class="triage-main">';
+    html += '<h4 class="triage-severity">Severity: <span style="color:' + sevColor + ';">' + severity + '</span></h4>';
+    html += '<ul class="triage-list">';
     if (triageReasons.length === 0) triageReasons.push("No significant risk factors flagged");
     triageReasons.forEach(rs => { html += '<li>' + esc(rs) + '</li>'; });
     html += '</ul>';
     
-    html += '<h5 style="margin: 14px 0 6px; font-size: 0.95rem;">Recommended Defensive Actions:</h5>';
-    html += '<ul style="margin: 0; padding-left: 20px; color: var(--text-secondary); font-size: 0.9rem;">';
+    html += '<h5 class="triage-recs-title">Recommended Defensive Actions:</h5>';
+    html += '<ul class="triage-list">';
     if (intel.phishingLinks && intel.phishingLinks.length > 0) html += '<li>Block phishing domains at corporate firewall.</li>';
     if ((intel.bankAccounts && intel.bankAccounts.length > 0) || (intel.upiIds && intel.upiIds.length > 0)) html += '<li>Flag financial accounts for fraud monitoring.</li>';
     if (isRepeated) html += '<li>Investigate correlated sessions for broader campaign attribution.</li>';
@@ -380,11 +417,11 @@ async function loadReport(sessionId) {
     html += '</div>';
     
     // IOC Exports
-    html += '<div style="display:flex; flex-direction:column; gap: 8px; min-width: 180px;">';
-    html += '<h5 style="margin-top:0; font-size: 0.95rem;">Threat Intel Export:</h5>';
-    html += '<button class="export-btn" onclick="exportData(\'json\')">📥 Report JSON</button>';
-    html += '<button class="export-btn" onclick="exportData(\'csv\')">📊 IOC CSV</button>';
-    html += '<button class="export-btn" onclick="exportData(\'txt\')">🛑 Blocklist TXT</button>';
+    html += '<div class="triage-exports">';
+    html += '<h5 class="triage-exports-title">Threat Intel Export:</h5>';
+    html += '<button class="export-btn" onclick="exportData(\'json\')">JSON</button>';
+    html += '<button class="export-btn" onclick="exportData(\'csv\')">CSV</button>';
+    html += '<button class="export-btn" onclick="exportData(\'txt\')">TXT</button>';
     html += '</div>';
     html += '</div>';
 
@@ -408,11 +445,11 @@ async function loadReport(sessionId) {
     // Agent Notes
     const notes = r.agentNotes || r.agent_notes || '';
     if (notes) {
-        html += '<h3 style="margin: 20px 0 10px;">📝 Agent Notes</h3>' +
+        html += '<h3 style="margin: 20px 0 10px;">[ AGENT_LOGS ]</h3>' +
             '<div class="agent-notes">' + esc(notes) + '</div>';
     }
     
-    html += '<h3 style="margin: 24px 0 10px;">🔐 Evidence Integrity</h3>';
+    html += '<h3 style="margin: 24px 0 10px;">[ CHAIN_OF_CUSTODY ]</h3>';
     html += '<div style="background: var(--bg-nav); padding: 14px; border: 1px solid var(--border); border-radius: 6px; font-family:var(--font-mono); font-size: 0.8rem; color: var(--text-muted); word-break: break-all;">';
     html += '<strong style="color:var(--text); font-family:var(--font); font-size:0.85rem">SHA-512 Fingerprint:</strong><br/>';
     try {
@@ -443,9 +480,13 @@ async function loadIndicators() {
     }
 
     let html = '<div class="section-header">' +
-        '<h2>Global Threat Indicators</h2>' +
+        '<h2>[ IOC_REGISTRY ]</h2>' +
         '<span class="section-count">' + data.indicators.length + ' unique</span>' +
         '</div>';
+
+    html += '<p style="color:var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">' +
+        '[!] Unique indicators extracted across stored sessions.' +
+        '</p>';
 
     html += '<table class="indicators-table"><thead><tr>' +
         '<th>Type</th><th>Value</th><th>Hit Count</th><th>First Seen</th><th>Last Seen</th>' +
@@ -484,12 +525,12 @@ async function loadRepeatedThreats() {
     }
 
     let html = '<div class="section-header">' +
-        '<h2>Repeated Threats</h2>' +
+        '<h2>[ CORRELATED_INFRASTRUCTURE ]</h2>' +
         '<span class="section-count">' + repeated.length + ' correlated</span>' +
         '</div>';
 
     html += '<p style="color:var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">' +
-        '⚠️ Indicators seen across multiple sessions may represent reused scam infrastructure.' +
+        '[!] Indicators seen across multiple sessions suggesting reused scam infrastructure.' +
         '</p>';
 
     html += '<table class="indicators-table"><thead><tr>' +
@@ -529,7 +570,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
         sessionStorage.setItem('niriksha_api_key', apiKey);
-        loadSessions();
+        loadLiveConsole();
     });
 
     // Enter key in input
@@ -552,7 +593,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Auto-load if key already saved
-    if (apiKey) loadSessions();
+    if (apiKey) loadLiveConsole();
 });
 
 // --------------- Live Console ---------------
@@ -560,7 +601,8 @@ document.addEventListener('DOMContentLoaded', function () {
 let lcSessionId = '';
 let lcConversation = [];
 let lcTurnCount = 0;
-const LC_MAX_TURNS = 5;
+const LC_MAX_TURNS = 10;
+const LC_SOFT_LIMIT = 7;
 
 function loadLiveConsole() {
     setActiveNav('console');
@@ -573,13 +615,15 @@ function renderLiveConsole() {
     let turnsLeft = LC_MAX_TURNS - lcTurnCount;
     let warningHtml = '';
     if (turnsLeft <= 0) {
-        warningHtml = '<span class="token-warning">Token cap reached (' + LC_MAX_TURNS + '/' + LC_MAX_TURNS + '). Please reset to start a new session.</span>';
+        warningHtml = '<span class="token-warning" style="color:var(--danger)">[ LOCKOUT ] Turn cap reached. Session terminated.</span>';
+    } else if (lcTurnCount >= LC_SOFT_LIMIT) {
+        warningHtml = '<span class="token-warning">[ WARNING ] Approaching cap: ' + turnsLeft + ' turns remaining.</span>';
     } else {
-        warningHtml = '<span style="font-size:0.8rem; color:var(--text-muted);">Token-conscious mode: ' + turnsLeft + ' turns remaining.</span>';
+        warningHtml = '<span style="font-size:0.8rem; color:var(--text-muted); font-family:var(--font-mono);">[ SYSTEM_READY ] ' + turnsLeft + ' turns remaining.</span>';
     }
 
     let html = '<div class="section-header">' +
-        '<h2>💻 Live Console</h2>' +
+        '<h2>[ DECEPTION_CONSOLE ]</h2>' +
         '<span class="section-count">Live Demo</span>' +
         '</div>';
 
@@ -602,10 +646,10 @@ function renderLiveConsole() {
 
     html += '<div class="example-spills">' +
         '<span style="font-size: 0.8rem; color: var(--text-muted); align-self: center;">Load Example:</span>' +
-        '<button class="example-btn" onclick="lcPrefill(\'Your HDFC bank account will be blocked today. Please complete KYC here: http://hdfc-kyc-update.net\')">Bank KYC</button>' +
-        '<button class="example-btn" onclick="lcPrefill(\'Claim your free iPhone now! Click this link: http://win-iphone15-free.com\')">Phishing</button>' +
-        '<button class="example-btn" onclick="lcPrefill(\'I sent Rs 5000 to your number by mistake. Please refund it to my UPI ID.\')">UPI Refund</button>' +
-        '<button class="example-btn" onclick="lcPrefill(\'Earn 500% returns in 3 days with our crypto plan. Join now!\')">Investment</button>' +
+        '<button class="example-btn" onclick="lcPrefillCategory(\'kyc\')">Bank KYC</button>' +
+        '<button class="example-btn" onclick="lcPrefillCategory(\'phishing\')">Phishing Link</button>' +
+        '<button class="example-btn" onclick="lcPrefillCategory(\'upi\')">UPI / Refund</button>' +
+        '<button class="example-btn" onclick="lcPrefillCategory(\'investment\')">Investment</button>' +
         '</div>';
 
     html += '<div class="console-actions">' +
@@ -656,6 +700,44 @@ window.lcPrefill = function(text) {
         ta.value = text;
         ta.focus();
     }
+};
+
+const LC_PRESETS = {
+    kyc: [
+        'Your HDFC bank account will be blocked today. Please complete KYC here: http://hdfc-kyc-update.net',
+        'Dear Customer, your SBI account PAN linkage is pending. Please update via link: http://sbi-pan-update.com',
+        'Attention: ICICI Bank KYC suspended. Click here to verify your identity: http://verify-icici-kyc.in',
+        'Account locked due to unusual activity. Provide Aadhar details immediately to restore access.',
+        'Urgent: Complete your e-KYC for Axis Bank. Failure will result in Rs 500 penalty. Link: http://axis-ekyc-portal.com'
+    ],
+    phishing: [
+        'Claim your free iPhone now! Click this link: http://win-iphone15-free.com',
+        'Congratulations! You have been selected for a free gift card. Claim here: http://amazon-rewards-claim.net',
+        'You have an undelivered package from India Post. Pay Rs 5 clearance fee: http://indiapost-tracking-fee.com',
+        'Your Netflix subscription has expired. Update payment details: http://netflix-billing-update.com',
+        'Amazon Prime membership cancelled. Reactive account and claim reward here: http://amz-prime-renewal.com'
+    ],
+    upi: [
+        'I sent Rs 5000 to your number by mistake. Please refund it to my UPI ID.',
+        'Congrats, you won Rs 10,000 on PhonePe! Enter UPI PIN to receive cashback.',
+        'Please scan this QR code to receive your Olx item payment directly to your bank account.',
+        'Dear user, your Google Pay reward of Rs 1,500 is pending. Proceed with UPI to claim.',
+        'Merchant refund initiated. To receive Rs 2000, please approve the collect request on your UPI app.'
+    ],
+    investment: [
+        'Earn 500% returns in 3 days with our crypto plan. Join now!',
+        'Work from home part-time and earn Rs 5000 daily by simply liking YouTube videos. Contact me for details.',
+        'Premium trading tips! Join our Telegram group to turn Rs 10k into Rs 1 Lakh in one week.',
+        'Guaranteed doubled money in 30 days! Invest in our international hedge fund. Minimum deposit Rs 1000.',
+        'Want to earn money online? Share your WhatsApp number and I will guide you to make Rs 2000 per hour.'
+    ]
+};
+
+window.lcPrefillCategory = function(cat) {
+    const texts = LC_PRESETS[cat];
+    if (!texts) return;
+    const picked = texts[Math.floor(Math.random() * texts.length)];
+    lcPrefill(picked);
 };
 
 window.lcResetSession = function() {
@@ -733,6 +815,10 @@ window.lcSendMessage = async function() {
             let conf = report.confidenceLevel || report.confidence_level || 0;
             if (conf <= 1) conf = Math.round(conf * 100);
             
+            // Re-use export data globally
+            window.currentReportData = report;
+            window.currentReportIntel = report.extractedIntelligence || report.extracted_intelligence || {};
+            
             const panel = document.getElementById('lc-report-panel');
             if (panel) {
                 panel.innerHTML = '<div class="final-report-panel">' +
@@ -740,7 +826,12 @@ window.lcSendMessage = async function() {
                         '<span class="final-report-title">✅ Final Report Generated</span>' +
                         '<span class="final-report-desc">Detected <strong>' + esc(scamType.replace(/_/g, ' ')) + '</strong> (' + conf + '% confidence).</span>' +
                     '</div>' +
+                    '<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">' +
+                    '<button class="export-btn" onclick="exportData(\'json\')">📥 JSON</button>' +
+                    '<button class="export-btn" onclick="exportData(\'csv\')">📥 IOC CSV</button>' +
+                    '<button class="export-btn" onclick="exportData(\'txt\')">📥 Blocklist TXT</button>' +
                     '<button class="report-btn" onclick="loadReport(\'' + esc(lcSessionId) + '\')">📄 View Full Report</button>' +
+                    '</div>' +
                 '</div>';
             }
         }

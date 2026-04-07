@@ -25,6 +25,19 @@ def _sanitize_reply(reply: str) -> str:
     if not r:
         return ""
 
+    # Typo / polish cleanup (Task 3)
+    typo_map = {
+        r"\beml\b": "email",
+        r"\bdetls\b": "details",
+        r"\bcomplnt\b": "complaint",
+        r"\baccnt\b": "account",
+        r"\bbnk\b": "bank",
+        r"\bplz\b": "please",
+        r"\bpls\b": "please"
+    }
+    for pat, rep in typo_map.items():
+        r = re.sub(pat, rep, r, flags=re.IGNORECASE)
+
     # Remove banned words (don't accuse, don't mention AI/bot/honeypot)
     rl = r.lower()
     for bw in BANNED_WORDS:
@@ -146,6 +159,41 @@ Important: Do NOT ask multiple questions. Do NOT end the conversation.
     )
 
     out = completion.choices[0].message.content.strip()
+
+    # --- Task 1 & 4: Anti-Repetition Guard and Controlled Diversity ---
+    out_lower = out.lower()
+    recent_hp = [m.text.lower() for m in history[-6:] if (m.sender or "").lower() != "scammer" and m.text]
+    
+    is_rep = False
+    for prev in recent_hp:
+        # Guard: basic substring repetition
+        if len(out_lower) > 20 and out_lower[:20] in prev:
+            is_rep = True
+        # Guard: asking for reference repeatedly
+        if ("reference" in out_lower or "ticket" in out_lower) and ("reference" in prev or "ticket" in prev):
+            is_rep = True
+        # Guard: repeating the exact same specific intel ask
+        if hint.lower() in out_lower and hint.lower() in prev:
+            is_rep = True
+
+    if is_rep:
+        # Rewrite to generic fallback using dynamic missing-intel hint
+        import random
+        if hint == "how to proceed":
+            fallbacks = [
+                "What should I do next?",
+                "How do I proceed safely?",
+                "What is the next step from here?"
+            ]
+        else:
+            fallbacks = [
+                f"Could you just share the {hint}?",
+                f"I'm a bit confused, what's the {hint}?",
+                f"Okay, but I really need the {hint} first.",
+                f"I'm trying to follow... can I get the {hint} instead?"
+            ]
+        out = random.choice(fallbacks)
+
     return out
 
 def _enforce_minimums(turn: int, reply: str, counts: Dict[str, int]) -> str:
@@ -154,13 +202,21 @@ def _enforce_minimums(turn: int, reply: str, counts: Dict[str, int]) -> str:
     If we are behind rubric targets on QUESTION_TURNS, add a single short question.
     """
     r = reply.strip()
+    import random
     if turn in QUESTION_TURNS:
         if counts.get("q", 0) < 5 and "?" not in r:
-            r = r.rstrip(".") + ". What's the reference/ticket number?"
+            # Task 2/4: Remove hardcoded reference ask, use diverse generic questions
+            variations = [
+                " How do we proceed?",
+                " Could you explain a bit more?",
+                " What else is needed?",
+                " Could you help me understand?"
+            ]
+            r = r.rstrip(".") + random.choice(variations)
         if counts.get("inv", 0) < 3 and not any(w in r.lower() for w in ["verify", "official", "confirm"]):
             # replace the question part to be investigative
             if "?" in r:
-                r = "I'm trying to verify this officially\u2014what's the reference/ticket number?"
+                r = "I'm trying to verify this officially\u2014" + r[:1].lower() + r[1:]
             else:
                 r = r.rstrip(".") + " I'm trying to verify this officially."
     return _sanitize_reply(r)

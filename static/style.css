@@ -3,37 +3,37 @@
    ============================================================ */
 
 :root {
-    --bg-body:       #0a0e17;
-    --bg-header:     #0f1420;
-    --bg-nav:        #111827;
-    --bg-card:       #1a1f2e;
-    --bg-card-hover: #242b3d;
-    --bg-input:      #1e2538;
-    --border:        #2d3548;
+    --bg-body:       #05080f;
+    --bg-header:     #080c16;
+    --bg-nav:        #0a0f1c;
+    --bg-card:       #0d1424;
+    --bg-card-hover: #121c32;
+    --bg-input:      #080c16;
+    --border:        #1f2937;
     --border-light:  #374151;
 
-    --accent:        #818cf8;
-    --accent-dim:    #6366f1;
-    --accent-glow:   rgba(129, 140, 248, 0.15);
+    --accent:        #34d399;
+    --accent-dim:    #059669;
+    --accent-glow:   rgba(52, 211, 153, 0.15);
     --success:       #34d399;
     --success-dim:   rgba(52, 211, 153, 0.15);
-    --warning:       #fbbf24;
-    --warning-dim:   rgba(251, 191, 36, 0.12);
-    --danger:        #f87171;
-    --danger-dim:    rgba(248, 113, 113, 0.12);
+    --warning:       #f59e0b;
+    --warning-dim:   rgba(245, 158, 11, 0.12);
+    --danger:        #ef4444;
+    --danger-dim:    rgba(239, 68, 68, 0.12);
 
-    --text:          #f1f5f9;
+    --text:          #e2e8f0;
     --text-secondary:#94a3b8;
-    --text-muted:    #64748b;
+    --text-muted:    #475569;
 
     --font:          'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono:     'JetBrains Mono', 'Consolas', 'Courier New', monospace;
 
-    --radius:        10px;
-    --radius-sm:     6px;
-    --radius-xs:     4px;
-    --shadow:        0 4px 24px rgba(0, 0, 0, 0.35);
-    --shadow-sm:     0 2px 8px rgba(0, 0, 0, 0.25);
+    --radius:        2px;
+    --radius-sm:     2px;
+    --radius-xs:     2px;
+    --shadow:        0 4px 24px rgba(0, 0, 0, 0.5);
+    --shadow-sm:     0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 /* ---- Reset ---- */
@@ -42,6 +42,7 @@
 body {
     font-family: var(--font);
     background: var(--bg-body);
+    background-image: linear-gradient(rgba(5, 8, 15, 0.95), rgba(5, 8, 15, 0.95)), url('data:image/svg+xml;utf8,<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="%231a202c" stroke-width="0.5"/></svg>');
     color: var(--text);
     line-height: 1.6;
     min-height: 100vh;
@@ -87,7 +88,7 @@ code {
     font-size: 1.25rem;
     font-weight: 700;
     letter-spacing: -0.02em;
-    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    background: var(--text);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -726,6 +727,12 @@ code {
     border-color: var(--accent);
 }
 
+.export-btn.active {
+    background: var(--text);
+    color: var(--bg-body);
+    border-color: var(--text);
+}
+
 /* ============================================================
    Responsive
    ============================================================ */
@@ -953,3 +960,57 @@ code {
     color: var(--text-secondary);
     font-size: 0.8rem;
 }
+
+/* ============================================================
+   Analyst Triage & Utils
+   ============================================================ */
+
+.triage-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 18px;
+    margin-bottom: 24px;
+}
+
+.triage-main {
+    flex: 1;
+    min-width: 250px;
+}
+
+.triage-severity {
+    margin-top: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.triage-list {
+    margin: 8px 0;
+    padding-left: 20px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-family: var(--font-mono);
+}
+
+.triage-exports {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 180px;
+}
+
+.triage-exports-title, .triage-recs-title {
+    margin: 14px 0 6px;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+}
+
+.triage-exports-title { margin-top: 0; }
+
+.mono { font-family: var(--font-mono); }
+.text-accent { color: var(--accent); }

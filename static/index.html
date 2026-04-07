@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,18 +8,21 @@
     <meta name="description" content="Agentic AI Honeypot Dashboard for Scam Detection and Intelligence Extraction">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
 
     <!-- Header -->
     <header id="header">
         <div class="header-left">
-            <div class="logo">🛡️</div>
+            <div class="logo mono text-accent">///</div>
             <div>
                 <h1>NIRIKSHA.ai</h1>
-                <span class="subtitle">Agentic AI Honeypot Dashboard</span>
+                <span class="subtitle">Threat Operations Console</span>
             </div>
         </div>
         <div class="header-right">
@@ -32,29 +36,31 @@
 
     <!-- Navigation -->
     <nav id="nav">
-        <button class="nav-btn active" data-view="sessions" id="nav-sessions">
-            <span class="nav-icon">📋</span> Sessions
+        <button class="nav-btn" data-view="sessions" id="nav-sessions">
+            <span class="nav-icon mono">[SESS]</span> Captured Sessions
         </button>
         <button class="nav-btn" data-view="indicators" id="nav-indicators">
-            <span class="nav-icon">🎯</span> Indicators
+            <span class="nav-icon mono">[IOC]</span> IOC Registry
         </button>
         <button class="nav-btn" data-view="repeated" id="nav-repeated">
-            <span class="nav-icon">⚠️</span> Repeated Threats
+            <span class="nav-icon mono">[CORR]</span> Correlated Infrastructure
         </button>
-        <button class="nav-btn" data-view="console" id="nav-console">
-            <span class="nav-icon">💻</span> Live Console
+        <button class="nav-btn active" data-view="console" id="nav-console">
+            <span class="nav-icon mono">[LIVE]</span> Deception Console
         </button>
     </nav>
 
     <!-- Main Content -->
     <main id="content">
         <div class="welcome-card">
-            <div class="welcome-icon">🔐</div>
-            <h2>Enter Your API Key</h2>
-            <p>Paste your <code>API_SECRET_KEY</code> above and click <strong>Connect</strong> to load the dashboard.</p>
+            <div class="welcome-icon mono text-accent">[ AUTH_REQUIRED ]</div>
+            <h2>Enter Operator Key</h2>
+            <p>Paste your <code>API_SECRET_KEY</code> to authenticate with the deception network.
+            </p>
         </div>
     </main>
 
     <script src="/static/app.js"></script>
 </body>
+
 </html>
