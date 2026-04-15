@@ -76,6 +76,16 @@ src/
 ├── session_state.py      Six module-level dicts/sets that hold all in-memory state.
 │                         These are Python module singletons — all importers share
 │                         the same objects. Never reassigned; only mutated.
+├── models.py             SQLModel table definitions (5 tables):
+│                           SessionRecord, Message, Indicator,
+│                           SessionIndicator, Report
+│                           All created automatically on startup.
+├── db.py                 Database engine (SQLite), create_db(), and all
+│                         DB helper functions:
+│                           db_create_session(), db_save_message(),
+│                           db_update_session(), db_upsert_indicators(),
+│                           db_save_report()
+│                         Contains the cross-session IOC correlation logic.
 │
 ├── utils/
 │   └── text.py           12 compiled regex patterns (URL, email, phone, UPI, OTP,
@@ -103,8 +113,15 @@ src/
 │                         Reads SESSION_START_TIMES for duration calculation.
 │
 └── routes/
-    └── detect.py         detect_scam() — the single route handler on APIRouter.
-                          Orchestrates the full pipeline. Reads/writes all 6 state dicts.
+    ├── detect.py         detect_scam() — POST /api/detect handler.
+    │                     Orchestrates the full pipeline. Reads/writes all 6 state dicts.
+    │                     Calls all DB persistence functions per turn.
+    │
+    └── retrieval.py      4 authenticated GET endpoints (read-only):
+                            list_sessions()     — GET /api/sessions
+                            get_session()       — GET /api/sessions/{session_id}
+                            get_report()        — GET /api/reports/{session_id}
+                            list_indicators()   — GET /api/indicators
 ```
 
 ---
@@ -217,18 +234,64 @@ schemas.py       ← no internal deps (leaf)
 session_state.py ← no internal deps (leaf)
 utils/text.py    ← no internal deps (leaf)
 
+models.py                ← no internal deps (leaf; pure SQLModel table definitions)
+db.py                    ← models
+
 services/scoring.py      ← utils/text
 services/extraction.py   ← utils/text, schemas
 services/reply_generation.py ← config, schemas, session_state, utils/text, services/scoring
 services/reporting.py    ← config, schemas, session_state, services/extraction
 
 routes/detect.py  ← config, schemas, session_state, services/scoring,
-                     services/extraction, services/reply_generation, services/reporting
+                     services/extraction, services/reply_generation,
+                     services/reporting, db
 
-main.py           ← config, routes/detect
+routes/retrieval.py ← config, db, models
+
+main.py           ← config, db, routes/detect, routes/retrieval
 ```
 
 The graph is strictly acyclic. Leaf modules have no internal imports.
+
+---
+
+## Database Schema
+
+SQLite via SQLModel (SQLAlchemy wrapper). File: `data/agentic_ai_honeypot.db`. Auto-created on first startup by `create_db()` in `src/db.py`.
+
+### 5 Tables
+
+| Table | Primary Key | Purpose |
+|---|---|---|
+| `session` | `id` (UUID string) | One row per engagement. Stores turn count, scam score, rubric counts, asked hints, status (active/completed), timestamps. |
+| `message` | `id` (auto-int) | Every individual message (both scammer and honeypot). Foreign key to `session.id`. |
+| `indicator` | `id` (auto-int) | **Global** unique IOC registry across all sessions. Has `indicator_type`, `value`, `hit_count`, `first_seen_at`, `last_seen_at`. Unique constraint on `(indicator_type, value)`. |
+| `session_indicator` | `id` (auto-int) | Many-to-many join table linking indicators to sessions. Unique constraint on `(session_id, indicator_id)`. |
+| `report` | `id` (auto-int) | One final report per completed session. Stores scam type, confidence, metrics, and the full report as a JSON string. Unique constraint on `session_id`. |
+
+### Cross-Session IOC Correlation (hit_count Logic)
+
+The `db_upsert_indicators()` function in `src/db.py` implements the correlation mechanism:
+
+1. For each extracted IOC value, check if this `(indicator_type, value)` pair already exists in the global `indicator` table.
+2. **If new globally:** Create the indicator with `hit_count = 1`. Create a `session_indicator` link.
+3. **If exists but not linked to this session:** Increment `hit_count += 1`, update `last_seen_at`, create the link.
+4. **If already linked to this session:** Do nothing (prevents double-counting within the same session).
+
+This means `hit_count` counts **distinct sessions**, not raw occurrences. An indicator with `hit_count = 3` appeared in 3 separate attack sessions, strongly suggesting reused campaign infrastructure.
+
+---
+
+## Dashboard / Frontend
+
+The dashboard is a vanilla HTML5/JS/CSS application in `static/`. No frameworks, no build step.
+
+- `src/main.py` serves `static/index.html` via `FileResponse` at `GET /dashboard`.
+- `src/main.py` mounts the `static/` directory via `StaticFiles` for JS/CSS assets.
+- Because the dashboard is served from the **same origin** as the API, no CORS middleware is needed.
+- The dashboard authenticates by sending the `x-api-key` header with every fetch request to the retrieval endpoints.
+- Four views: **Live Console**, **Captured Sessions**, **IOC Registry**, **Correlated Infrastructure**.
+- Export functionality (JSON, CSV, Blocklist TXT) is generated client-side in `app.js`.
 
 ---
 

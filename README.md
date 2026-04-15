@@ -32,7 +32,7 @@ When a scammer initiates contact, the system deploys a generative AI agent that 
 - **Real-Time Intelligence Extraction:** Parses 9 distinct entity types (e.g., UPI IDs, Bank Accounts, Emails) from raw attacker chat.
 - **SQLite Persistence:** All sessions, chat transcripts, and extracted threat indicators are automatically saved to a local `.db` file using SQLModel.
 - **Built-in Operations Dashboard:** A fully native, vanilla JS frontend served securely from the same origin to eliminate CORS complexity.
-- **Cross-Session Threat Correlation:** Automatically tracks when an attacker reuses the same underlying infrastructure (e.g., the same Crypto Wallet) across multiple different attacks.
+- **Cross-Session Threat Correlation:** Automatically tracks when an attacker reuses the same underlying infrastructure (e.g., the same UPI ID or phishing URL) across multiple different attacks.
 - **Security Analyst Exports:** Generates rapid JSON, CSV, and Blocklist TXT files for firewall/DNS-filter triage.
 
 ---
@@ -46,6 +46,8 @@ The project includes an integrated front-end dashboard designed for Security Ana
 3. **[ IOC ] IOC Registry:** The Threat Intelligence ledger. A unified view of all unique extracted entities (links, banks, etc.) harvested by the honeypot over time.
 4. **[ CORR ] Correlated Infrastructure:** Tracks "Repeated Threats". If the system detects the same indicator across multiple sessions, it flags it here, suggesting a coordinated scatter-spray campaign rather than an isolated incident.
 
+![Captured Sessions](docs/assets/dashboard/sessions_list.png)
+
 ---
 
 ## ⚙️ Architecture Summary
@@ -54,7 +56,7 @@ NIRIKSHA.ai completely isolates its backend logic from the frontend UI.
 - **Backend Protocol:** Asynchronous FastAPI REST pipeline executing heuristic scoring arrays and LLM routing.
 - **LLM Pipeline:** Utilizes Groq (Llama-3.3-70B) constrained by strict anti-repetition guardrails and 200-character truncation limits to maintain human illusion.
 - **Database Layer:** SQLite powered by SQLAlchemy/SQLModel. Creates tables dynamically on startup to `data/agentic_ai_honeypot.db`.
-- **Frontend Layer:** `index.html` and `app.js` rendered synchronously via a Jinja/StaticFiles wrapper directly over the FastAPI port.
+- **Frontend Layer:** `index.html` served via `FileResponse` and `app.js`/`style.css` mounted via `StaticFiles`, all on the same FastAPI port (same-origin, no CORS needed).
 
 *(Read the complete internal architecture in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md))*
 
@@ -109,6 +111,18 @@ If you want to pre-populate the database with historical sessions without typing
 python src/tests/test_chat.py
 ```
 
+### Quick Demo Flow
+
+Once the server is running and the dashboard is open:
+
+1. Click the **[ LIVE ] Deception Console** tab (default landing view).
+2. Click one of the **Example Preset** buttons (e.g., `Bank KYC`) to load a realistic scam message.
+3. Click **Send** and watch the AI honeypot respond as a confused victim.
+4. Continue sending 3-4 more scammer messages — observe IOCs being extracted silently.
+5. After turn 10, a **Final Intelligence Report** appears with download buttons for JSON, CSV, and Blocklist TXT.
+6. Switch to **[ SESS ] Captured Sessions** to see the session saved in the database.
+7. Switch to **[ IOC ] IOC Registry** to see all extracted indicators aggregated.
+
 ---
 
 ## 🔌 Major API Endpoints
@@ -120,6 +134,7 @@ The system relies strictly on authenticated endpoints using the `x-api-key` head
 | `/api/detect` | `POST` | Core engagement route. Parses message, routes to LLM, saves state. |
 | `/api/sessions` | `GET` | Retrieves all historical telemetry sessions. |
 | `/api/sessions/{id}`| `GET` | Retrieves deep transcript & report metrics for a specific session. |
+| `/api/reports/{id}` | `GET` | Retrieves the final intelligence report for a completed session. |
 | `/api/indicators` | `GET` | Retrieves all unique extracted Threat Intelligence elements. |
 | `/health` | `GET` | Unauthenticated ping to check uptime logic. |
 | `/dashboard` | `GET` | Server-rendered HTML payload for the frontend operations console. |
@@ -148,6 +163,55 @@ While feature-complete for local evaluation and academic presentation, this is a
 
 ---
 
+## 📂 Repository Structure
+
+```
+NIRIKSHA.ai/
+├── src/
+│   ├── main.py                  # FastAPI app, router wiring, /dashboard, /health
+│   ├── config.py                # Env vars, Groq client, API key, delay constants
+│   ├── schemas.py               # Pydantic request/response models
+│   ├── session_state.py         # 6 in-memory session state dicts
+│   ├── models.py                # SQLModel table definitions (5 tables)
+│   ├── db.py                    # SQLite engine, all DB helper functions
+│   ├── utils/
+│   │   └── text.py              # Regex patterns, word lists, normalization
+│   ├── services/
+│   │   ├── scoring.py           # Scam signal scoring (regex heuristics)
+│   │   ├── extraction.py        # IOC extraction (9 entity types)
+│   │   ├── reply_generation.py  # LLM reply, hints, anti-repetition, guardrails
+│   │   └── reporting.py         # Final report assembly, scam type classification
+│   ├── routes/
+│   │   ├── detect.py            # POST /api/detect — core engagement pipeline
+│   │   └── retrieval.py         # GET endpoints — sessions, reports, indicators
+│   └── tests/
+│       └── test_chat.py         # Integration test: 5 weighted scam scenarios
+├── static/
+│   ├── index.html               # Dashboard HTML shell
+│   ├── app.js                   # Full dashboard logic (4 views, live console, exports)
+│   └── style.css                # Dark-themed operations console styling
+├── data/
+│   └── agentic_ai_honeypot.db   # SQLite database (auto-created, gitignored)
+├── docs/                        # Project documentation
+├── requirements.txt             # Python dependencies
+├── .env.example                 # Environment variable template
+└── .gitignore
+```
+
+---
+
+## 🔧 Troubleshooting
+
+| Problem | Solution |
+|---|---|
+| Server crashes on startup | `GROQ_API_KEY` is missing or empty in `.env`. |
+| 403 Forbidden on every request | Your `x-api-key` header (or dashboard input) does not match `API_SECRET_KEY` in `.env`. |
+| Dashboard opens but no sessions appear | Run `python src/tests/test_chat.py` to generate demo data first. |
+| Port already in use | Change `--port 8010` to another port in the uvicorn command. |
+| Root URL `/` returns 404 | This is expected. Use `/dashboard` or `/health` instead. |
+
+---
+
 ## 📚 Documentation Index
 
 | Document | Purpose |
@@ -157,5 +221,6 @@ While feature-complete for local evaluation and academic presentation, this is a
 | [docs/OVERVIEW.md](docs/OVERVIEW.md) | Business logic and academic use cases defending Active Deception models. |
 | [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md) | At-a-glance breakdown of exactly which features map to which internal files. |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Honest depiction of V1 capabilities versus targeted V2 Enterprise features. |
+| [docs/DASHBOARD_WALKTHROUGH.md](docs/DASHBOARD_WALKTHROUGH.md) | Visual guide to the dashboard views and analyst workflow. |
 
 ---

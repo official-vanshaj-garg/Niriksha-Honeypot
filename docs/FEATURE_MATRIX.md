@@ -6,7 +6,7 @@ Status values: **Implemented** | **Partial** | **Not implemented**
 |---|---|---|---|---|
 | 1 | `POST /api/detect` endpoint | **Implemented** | `src/routes/detect.py` | Full pipeline: auth → session → scoring → extraction → LLM reply → finalization |
 | 2 | API key authentication | **Implemented** | `src/config.py`, `src/routes/detect.py` | `x-api-key` header vs `API_SECRET_KEY` env var |
-| 3 | Multi-turn session management | **Implemented** | `src/session_state.py`, `src/routes/detect.py` | In-memory dicts keyed by `sessionId`. Lost on restart. |
+| 3 | Multi-turn session management | **Implemented** | `src/session_state.py`, `src/routes/detect.py` | In-memory dicts keyed by `sessionId` (lost on restart); structured data (sessions, messages, indicators, reports) persisted to SQLite. |
 | 4 | Scam signal scoring | **Implemented** | `src/services/scoring.py` | Regex-based, cumulative per session. Scores OTP requests, payment pressure, urgency, links, phones, UPIs. |
 | 5 | Intelligence extraction — phones | **Implemented** | `src/services/extraction.py`, `src/utils/text.py` | India-focused regex; normalised to +91 format |
 | 6 | Intelligence extraction — bank accounts | **Implemented** | `src/services/extraction.py` | 9–18 digit numbers; phone/UPI overlap removed; epoch timestamps excluded |

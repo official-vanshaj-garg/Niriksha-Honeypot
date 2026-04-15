@@ -20,6 +20,8 @@ The main historical evidence library. Shows the `sessionId`, completion status (
 ### 3. Session Detail (Triage View)
 Deep dive into a specific historical interaction. Displays live metadata alongside the full conversational replay, differentiating between the Honeypot's responses and the Scammer's prompts. Directly surfaces individual Indicators of Compromise (IOCs) harvested from the raw text. Contains the packaged incident report outlining the classified `scam_type` and confidence percentages.
 
+![Session Detail](assets/dashboard/session_detail.png)
+
 ![Report View](assets/dashboard/report_view.png)
 
 ### 4. [ IOC ] IOC Registry
