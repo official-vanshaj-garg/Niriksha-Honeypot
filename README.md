@@ -73,7 +73,7 @@ Running the project is designed to be extremely beginner-friendly.
 ### 2. Installation
 ```bash
 # Clone the repository
-git clone https://github.com/ABHI99RAJPUT/NIRIKSHA.ai.git
+git clone https://github.com/official-vanshaj-garg/Niriksha-Honeypot.git
 cd NIRIKSHA.ai
 
 # Create and activate a Python virtual environment
